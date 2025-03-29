@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbell Weight Calculator</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        canvas { background: white; border: 1px solid black; display: block; margin: 0 auto; }
+        .button-container { margin: 10px; }
+        button { margin: 5px; padding: 10px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Barbell Weight Calculator</h1>
+    <p id="display">Total Weight: 20kg / 44lbs<br>Plates on each side: None</p>
+    <p id="warning" style="color: red;"></p>
+    <canvas id="barCanvas" width="1000" height="300"></canvas>
+    <div class="button-container" id="buttons"></div>
+    <div class="button-container">
+        <button onclick="removeLastPlate()">Undo</button>
+        <button onclick="resetBarbell()">Reset</button>
+        <button onclick="toggleBarWeight()">Toggle Bar Weight</button>
+    </div>
+    <script>
+        let barWeight = 20;
+        let plates = [];
+        const maxPlateWidthPerSide = 16 * 8;
+        const plateData = {
+            25: { width: 8, height: 140, color: "red" }, 
+            20.408: { width: 10.5, height: 140, color: "#404040" }, 
+            20: { width: 6, height: 140, color: "blue" }, 
+            15: { width: 6, height: 115, color: "yellow" },
+            10: { width: 6, height: 100, color: "green" }, 
+            5: { width: 5.5, height: 85, color: "white" },
+            2.5: { width: 5, height: 70, color: "gray" }, 
+            1.25: { width: 4, height: 60, color: "silver" },
+            0.5: { width: 3, height: 50, color: "silver" }, 
+            0.25: { width: 2, height: 40, color: "silver" }
+        };
+        const availablePlates = Object.keys(plateData).map(Number);
+        
+        function getTotalPlateWidth() {
+            return plates.reduce((sum, p) => sum + plateData[p].width, 0);
+        }
+        
+        function updateDisplay() {
+            const totalKg = barWeight + 2 * plates.reduce((sum, p) => sum + p, 0);
+            const totalLbs = (totalKg * 2.20462).toFixed(1);
+            let plateCounts = {};
+            plates.forEach(p => plateCounts[p] = (plateCounts[p] || 0) + 1);
+            const displayStr = Object.entries(plateCounts)
+                .sort((a, b) => b[0] - a[0])
+                .map(([k, v]) => `${v}x ${k}kg`).join(" / ");
+            document.getElementById("display").innerHTML = `Total Weight: ${totalKg}kg / ${totalLbs}lbs<br>Plates on each side: ${displayStr || 'None'}`;
+        }
+
+        function updateBarVisual() {
+            const canvas = document.getElementById("barCanvas");
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const barX = canvas.width / 2;
+            const barY = canvas.height / 2;
+            ctx.fillStyle = "gray";
+            ctx.fillRect(200, barY - 5, 600, 10);
+            
+            let xLeft = 200, xRight = 800;
+            plates.forEach(plate => {
+                ctx.fillStyle = plateData[plate].color;
+                ctx.fillRect(xLeft - plateData[plate].width, barY - plateData[plate].height / 2, plateData[plate].width, plateData[plate].height);
+                ctx.fillRect(xRight, barY - plateData[plate].height / 2, plateData[plate].width, plateData[plate].height);
+                
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(xLeft - plateData[plate].width, barY - plateData[plate].height / 2, plateData[plate].width, plateData[plate].height);
+                ctx.strokeRect(xRight, barY - plateData[plate].height / 2, plateData[plate].width, plateData[plate].height);
+                
+                xLeft -= plateData[plate].width;
+                xRight += plateData[plate].width;
+            });
+        }
+        
+        function addPlate(weight) {
+            if (getTotalPlateWidth() + plateData[weight].width > maxPlateWidthPerSide) {
+                document.getElementById("warning").innerText = "No more plates can be added.";
+                return;
+            }
+            document.getElementById("warning").innerText = "";
+            plates.push(weight);
+            updateDisplay();
+            updateBarVisual();
+        }
+
+        function removeLastPlate() {
+            if (plates.length) {
+                plates.pop();
+                document.getElementById("warning").innerText = "";
+                updateDisplay();
+                updateBarVisual();
+            }
+        }
+
+        function resetBarbell() {
+            plates = [];
+            document.getElementById("warning").innerText = "";
+            updateDisplay();
+            updateBarVisual();
+        }
+
+        function toggleBarWeight() {
+            barWeight = (barWeight === 20) ? (45 / 2.20462).toFixed(2) : 20;
+            updateDisplay();
+        }
+
+        function createButtons() {
+            const buttonContainer = document.getElementById("buttons");
+            availablePlates.forEach(plate => {
+                const button = document.createElement("button");
+                button.innerText = plate + "kg";
+                button.style.background = plateData[plate].color;
+                button.onclick = () => addPlate(plate);
+                buttonContainer.appendChild(button);
+            });
+        }
+
+        createButtons();
+        updateDisplay();
+        updateBarVisual();
+    </script>
+</body>
+</html>
